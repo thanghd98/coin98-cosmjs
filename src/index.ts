@@ -1,10 +1,10 @@
 import { bech32 } from "bech32";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction } from "./types";
+import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc } from "./types";
 import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
-import { compressPubkey, createSignature, makeKeypair, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
-import { encodeSecp256k1Pubkey, rawSecp256k1PubkeyToRawAddress } from "./amino";
+import { compressPubkey, createSignature, makeKeypair, Sha256, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
+import { encodeSecp256k1Pubkey, rawSecp256k1PubkeyToRawAddress, serializeSignDoc } from "./amino";
 import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { getAccount } from "./utils";
 import { encode, encodePubkey, makeAuthInfoBytes, makeSignBytes, makeSignDoc } from "./proto-signing";
@@ -134,6 +134,21 @@ export class Cosmos{
     });
 
     return txRaw
+  }
+
+  async signAmino(privateKey: string, signDoc: StdSignDoc){
+    const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
+    const publickey = compressPubkey(uncompressed)
+
+    const message = new Sha256(serializeSignDoc(signDoc)).digest();
+    const signature = await createSignature(message, Buffer.from(privateKey, 'hex'));
+    //@ts-expect-error
+    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
+
+    return {
+      signed: signDoc,
+      signature: encodeSecp256k1Signature(publickey, signatureBytes),
+    };
   }
 
   async broadcastTransaction(txBytes: string){

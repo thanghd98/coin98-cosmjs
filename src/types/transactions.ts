@@ -67,3 +67,17 @@ export interface IExecuteMultipleTransaction{
     fee: any | "auto" | number,
     memo?: string,
 }
+
+export interface AminoMsg {
+    readonly type: string;
+    readonly value: any;
+}
+
+export interface StdSignDoc {
+    readonly chain_id: string;
+    readonly account_number: string;
+    readonly sequence: string;
+    readonly fee: Fee;
+    readonly msgs: readonly AminoMsg[];
+    readonly memo: string;
+}
