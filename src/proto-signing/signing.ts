@@ -1,5 +1,5 @@
 import { Coin } from 'cosmjs-types/cosmos/base/v1beta1/coin';
-import { AuthInfo, SignDoc, SignerInfo, TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
+import { AuthInfo, SignDoc, SignerInfo } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
 import { SignMode } from 'cosmjs-types/cosmos/tx/signing/v1beta1/signing';
 import { Any } from 'cosmjs-types/google/protobuf/any';
 

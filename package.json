@@ -30,7 +30,7 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "@coin98/cosmjs",
+  "name": "@thanghd/cosmjs",
   "author": "thanghoduc",
   "module": "dist/cosmjs.esm.js",
   "size-limit": [

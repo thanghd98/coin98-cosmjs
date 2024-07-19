@@ -24,7 +24,7 @@ export class Hmac<H extends HashFunction> implements HashFunction {
 
     if (key.length < blockSize) {
       const zeroPadding = new Uint8Array(blockSize - key.length);
-      //@ts-expect-error
+       
       key = new Uint8Array([...key, ...zeroPadding]);
     }
 
@@ -45,7 +45,7 @@ export class Hmac<H extends HashFunction> implements HashFunction {
 
   public digest(): Uint8Array {
     const innerHash = this.messageHasher.digest();
-    //@ts-expect-error
+     
     return this.hash(new Uint8Array([...this.oKeyPad, ...innerHash]));
   }
 }

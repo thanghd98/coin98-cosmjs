@@ -123,7 +123,6 @@ export class Cosmos{
     const signBytes = makeSignBytes(signDoc);
     const hashedMessage = sha256(signBytes);
     const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
-    //@ts-expect-error
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
     const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
 
@@ -142,7 +141,6 @@ export class Cosmos{
 
     const message = new Sha256(serializeSignDoc(signDoc)).digest();
     const signature = await createSignature(message, Buffer.from(privateKey, 'hex'));
-    //@ts-expect-error
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
 
     return {

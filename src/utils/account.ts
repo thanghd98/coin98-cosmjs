@@ -1,4 +1,4 @@
-import { get } from 'lodash'
+import get from 'lodash/get'
 import { IAccountParams, IAccountResponse } from '../types';
 
 export const getAccount = async ({address, rest}: IAccountParams): Promise<IAccountResponse> => {

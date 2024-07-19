@@ -112,7 +112,7 @@ export class Slip10 {
   ): Slip10Result {
     let i: Uint8Array;
     if (rawIndex.isHardened()) {
-        //@ts-expect-error
+         
       const payload = new Uint8Array([0x00, ...parentPrivkey, ...rawIndex.toBytesBigEndian()]);
       i = new Hmac(Sha512, parentChainCode).update(payload).digest();
     } else {
@@ -123,9 +123,9 @@ export class Slip10 {
         // Calculate I = HMAC-SHA512(Key = c_par, Data = ser_P(point(k_par)) || ser_32(i)).
         // where the functions point() and ser_p() are defined in BIP-0032
         const data = new Uint8Array([
-        //@ts-expect-error
+         
           ...Slip10.serializedPoint(curve, new BN(parentPrivkey)),
-        //@ts-expect-error
+         
           ...rawIndex.toBytesBigEndian(),
         ]);
         i = new Hmac(Sha512, parentChainCode).update(data).digest();
@@ -180,7 +180,7 @@ export class Slip10 {
     // step 6
     if (this.isGteN(curve, il) || this.isZero(returnChildKey)) {
       const newI = new Hmac(Sha512, parentChainCode)
-        //@ts-expect-error
+         
         .update(new Uint8Array([0x01, ...ir, ...rawIndex.toBytesBigEndian()]))
         .digest();
       return this.childImpl(curve, parentPrivkey, parentChainCode, rawIndex, newI);

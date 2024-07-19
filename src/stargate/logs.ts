@@ -18,7 +18,7 @@ export function parseEvent(input: unknown): Event {
     if (!Array.isArray(attributes)) throw new Error("Event's attributes must be an array");
     return {
       type: type,
-      //@ts-expect-error
+       //@ts-expect-error
       attributes: attributes.map(parseAttribute),
     };
 }
