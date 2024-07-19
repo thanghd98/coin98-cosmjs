@@ -1,6 +1,6 @@
 import { bech32 } from "bech32";
-import { CosmosChainInfo } from "./types";
-import { ICreateAccount } from "./types/account";
+import { CosmosChainInfo, ICreateAccountResponse } from "./types";
+import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
 import { compressPubkey, makeKeypair, Slip10, Slip10Curve, stringToPath } from "./crypto";
 import { rawSecp256k1PubkeyToRawAddress } from "./amino";
@@ -12,7 +12,7 @@ export class CosmosLibrary{
     this.chainInfo = chainInfo
   }
 
-  async createAcccount(params: ICreateAccount){
+  async createAcccount(params: ICreateAccountParams): Promise<ICreateAccountResponse>{
     const {isPrivateKey, mnemonic, privateKey, path} = params
     let privKey: Buffer
 
@@ -37,7 +37,7 @@ export class CosmosLibrary{
         return {
             address,
             privateKey: privKey.toString('hex'),
-            publickey: Buffer.from(publickey).toString('hex')
+            publicKey: Buffer.from(publickey).toString('hex')
         }
     } catch (error) {
       console.log("🚀 ~ CosmosLibrary ~ createAcccount ~ error:", error)
