@@ -35,13 +35,13 @@ export class Cosmos{
           const { privkey: privateKey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, stringToPath(`m/44'/${path}'/0'/0/0`));
           privKey = privateKey as Buffer
         }
-        console.log("🚀 ~ Cosmos ~ createAcccount ~ privKey:", privKey)
+        console.log("🚀 ~ Cosmos ~ createAcccount ~ privKey:", Buffer.from(privKey).toString('hex'))
 
         const uncompressed =  (await makeKeypair(privKey)).pubkey
         console.log("🚀 ~ Cosmos ~ createAcccount ~ uncompressed:", uncompressed)
     
         const publickey = compressPubkey(uncompressed)
-        console.log("🚀 ~ Cosmos ~ createAcccount ~ publickey:", publickey)
+        console.log("🚀 ~ Cosmos ~ createAcccount ~ publickey:", Buffer.from(publickey).toString('hex'))
 
         const words = bech32.toWords(rawSecp256k1PubkeyToRawAddress(publickey))
         const address = bech32.encode( get(this.chainInfo, 'bech32Config.bech32PrefixAccAddr'), words)
