@@ -250,17 +250,13 @@ export class Cosmos{
     };
   }
 
-  async getTokenInfoCw20 (params: TokenCW20Params): Promise<TokenCW20Response>{
+  async queryContractSmart (params: TokenCW20Params): Promise<TokenCW20Response>{
     const { address, query} = params
 
     try {
       const request = { address: address, queryData: toAscii(JSON.stringify(query)) };    
-     
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ request:", request)
       const  data  = QuerySmartContractStateRequest.encode(request).finish()
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ data:", data)
       const dataHex = Buffer.from(data).toString('hex')
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ dataHex:", dataHex)
   
       const fetching = await fetch(this.chainInfo.rpc, {
         method: 'POST',
@@ -277,20 +273,15 @@ export class Cosmos{
       })
   
       const {result} = await fetching.json()
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ result:", result)
 
       const value = get(result, 'response.value')
       const valueRaw = fromBase64(value)
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ valueRaw:", valueRaw)
-      
 
       const {data: resultDecode} = QuerySmartContractStateResponse.decode(new BinaryReader(valueRaw))
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ resultDecode:", resultDecode)
 
       let responseText: string;
       try {
         responseText = fromUtf8(resultDecode);
-        console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ responseText:", responseText)
       } catch (error) {
         throw new Error(`Could not UTF-8 decode smart query response from contract: ${error}`);
       }
