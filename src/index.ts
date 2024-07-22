@@ -44,7 +44,7 @@ export class Cosmos{
 
         return {
             address,
-            privateKey: privKey.toString('hex'),
+            privateKey: Buffer.from(privKey).toString('hex'),
             publicKey: Buffer.from(publickey).toString('hex')
         }
     } catch (error) {
