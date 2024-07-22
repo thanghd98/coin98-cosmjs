@@ -5,7 +5,7 @@ import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
 import { compressPubkey, createSignature, makeKeypair, Sha256, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
 import { encodeSecp256k1Pubkey, rawSecp256k1PubkeyToRawAddress, serializeSignDoc } from "./amino";
-import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { SignDoc, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { BinaryReader, BinaryWriter, getAccount } from "./utils";
 import { encode, encodePubkey, makeAuthInfoBytes, makeSignBytes, makeSignDoc } from "./proto-signing";
 import { Int53 } from "./math";
@@ -135,6 +135,23 @@ export class Cosmos{
     return this.signDirect({...params, signData: signerData})
   }
 
+  async signDirectDapp(privateKey: string, signDoc: SignDoc){
+    const signBytes = makeSignBytes(signDoc);
+
+    const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
+    const publickey = compressPubkey(uncompressed)
+  
+    const hashedMessage = sha256(signBytes);
+    const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
+    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
+    const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
+    
+    return {
+      signed: signDoc,
+      signature: stdSignature,
+    };
+  }
+
   async signDirect(params: ISignDirectParams){
     const { signData, privateKey, msgs, memo, fee } = params
     const { account_number, sequence, chainId } = signData
@@ -250,7 +267,7 @@ export class Cosmos{
     };
   }
 
-  async queryContractSmart (params: TokenCW20Params): Promise<TokenCW20Response>{
+  async queryContractSmart (params: TokenCW20Params){
     const { address, query} = params
 
     try {
