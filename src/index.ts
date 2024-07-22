@@ -31,6 +31,7 @@ export class Cosmos{
           privKey = privateKey
         }else{
           const seed = await mnemonicToSeed(mnemonic)
+          console.log("🚀 ~ Cosmos ~ createAcccount ~ stringToPath(`m/44'/${path}'/0'/0/0`):", stringToPath(`m/44'/${path}'/0'/0/0`))
           const { privkey: privateKey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, stringToPath(`m/44'/${path}'/0'/0/0`));
           privKey = privateKey as Buffer
         }
