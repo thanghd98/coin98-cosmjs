@@ -62,6 +62,10 @@ export class Cosmos{
     this.chainInfo = chainInfo
   }
 
+  static withChainInfo(chainInfo: CosmosChainInfo){
+    return new Cosmos(chainInfo)
+  }
+
   async createAcccount(params: ICreateAccountParams): Promise<ICreateAccountResponse>{
     console.log("🚀 ~ Cosmos ~ createAcccount ~ params:", params)
     const {isPrivateKey, mnemonic, privateKey, path} = params
