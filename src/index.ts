@@ -1,18 +1,59 @@
 import { bech32 } from "bech32";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc } from "./types";
+import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc, TokenCW20Params, TokenCW20Response } from "./types";
 import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
 import { compressPubkey, createSignature, makeKeypair, Sha256, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
 import { encodeSecp256k1Pubkey, rawSecp256k1PubkeyToRawAddress, serializeSignDoc } from "./amino";
 import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { getAccount } from "./utils";
+import { BinaryReader, BinaryWriter, getAccount } from "./utils";
 import { encode, encodePubkey, makeAuthInfoBytes, makeSignBytes, makeSignDoc } from "./proto-signing";
 import { Int53 } from "./math";
 import { encodeSecp256k1Signature } from "./crypto/signature";
-import { fromBase64, toBase64, toUtf8 } from "./encoding";
+import { fromBase64, fromUtf8, toAscii, toBase64, toUtf8 } from "./encoding";
 import { createDeliverTxResponseErrorMessage, isDeliverTxFailure, parseRawLog } from "./stargate";
 import get from "lodash/get";
+
+export const QuerySmartContractStateRequest = {
+  encode(
+    message: any,
+    writer: BinaryWriter = BinaryWriter.create(),
+  ): BinaryWriter {
+    if (message.address !== "") {
+      writer.uint32(10).string(message.address);
+    }
+    if (message.queryData.length !== 0) {
+      writer.uint32(18).bytes(message.queryData);
+    }
+    return writer;
+  },
+}
+
+export const QuerySmartContractStateResponse = {
+  decode(input: BinaryReader | Uint8Array, length?: number) {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseQuerySmartContractStateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.data = reader.bytes();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+}
+
+function createBaseQuerySmartContractStateResponse() {
+  return {
+    data: new Uint8Array(),
+  };
+}
 
 export class Cosmos{
   chainInfo: CosmosChainInfo
@@ -31,17 +72,13 @@ export class Cosmos{
           privKey = privateKey
         }else{
           const seed = await mnemonicToSeed(mnemonic)
-          console.log("🚀 ~ Cosmos ~ createAcccount ~ stringToPath(`m/44'/${path}'/0'/0/0`):", stringToPath(`m/44'/${path}'/0'/0/0`))
           const { privkey: privateKey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, stringToPath(`m/44'/${path}'/0'/0/0`));
           privKey = privateKey as Buffer
         }
-        console.log("🚀 ~ Cosmos ~ createAcccount ~ privKey:", Buffer.from(privKey).toString('hex'))
 
         const uncompressed =  (await makeKeypair(privKey)).pubkey
-        console.log("🚀 ~ Cosmos ~ createAcccount ~ uncompressed:", uncompressed)
     
         const publickey = compressPubkey(uncompressed)
-        console.log("🚀 ~ Cosmos ~ createAcccount ~ publickey:", Buffer.from(publickey).toString('hex'))
 
         const words = bech32.toWords(rawSecp256k1PubkeyToRawAddress(publickey))
         const address = bech32.encode( get(this.chainInfo, 'bech32Config.bech32PrefixAccAddr'), words)
@@ -52,7 +89,6 @@ export class Cosmos{
             publicKey: Buffer.from(publickey).toString('hex')
         }
     } catch (error) {
-      console.log("🚀 ~ CosmosLibrary ~ createAcccount ~ error:", error)
       throw new Error('Can not create the account')
     }
   }
@@ -208,6 +244,64 @@ export class Cosmos{
       gasWanted: result.gasWanted,
       gasUsed: result.gasUsed,
     };
+  }
+
+  async getTokenInfoCw20 (params: TokenCW20Params): Promise<TokenCW20Response>{
+    const { address, query} = params
+
+    try {
+      const request = { address: address, queryData: toAscii(JSON.stringify(query)) };    
+     
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ request:", request)
+      const  data  = QuerySmartContractStateRequest.encode(request).finish()
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ data:", data)
+      const dataHex = Buffer.from(data).toString('hex')
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ dataHex:", dataHex)
+  
+      const fetching = await fetch(this.chainInfo.rpc, {
+        method: 'POST',
+        body: JSON.stringify({
+          "jsonrpc": "2.0",
+          "id": new Date().getTime(),
+          "method": "abci_query",
+          "params": {
+              "path": "/cosmwasm.wasm.v1.Query/SmartContractState",
+              "data": dataHex,
+              "prove": false
+          }
+        })
+      })
+  
+      const {result} = await fetching.json()
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ result:", result)
+
+      const value = get(result, 'response.value')
+      const valueRaw = fromBase64(value)
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ valueRaw:", valueRaw)
+      
+
+      const {data: resultDecode} = QuerySmartContractStateResponse.decode(new BinaryReader(valueRaw))
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ resultDecode:", resultDecode)
+
+      let responseText: string;
+      try {
+        responseText = fromUtf8(resultDecode);
+        console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ responseText:", responseText)
+      } catch (error) {
+        throw new Error(`Could not UTF-8 decode smart query response from contract: ${error}`);
+      }
+      try {
+        return JSON.parse(responseText);
+      } catch (error) {
+        throw new Error(`Could not JSON parse smart query response from contract: ${error}`);
+      }
+      
+    } catch (error) {
+      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ error:", error)
+      throw new Error('Contract not found')
+    }
+
+
   }
 }
 

@@ -81,3 +81,14 @@ export interface StdSignDoc {
     readonly msgs: readonly AminoMsg[];
     readonly memo: string;
 }
+
+export interface TokenCW20Params{
+    address: string,
+    query?: any
+}
+
+export interface TokenCW20Response{
+    address: string,
+    symbol: string,
+    decimals: string
+}
