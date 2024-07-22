@@ -12,6 +12,7 @@ import { Int53 } from "./math";
 import { encodeSecp256k1Signature } from "./crypto/signature";
 import { fromBase64, toBase64, toUtf8 } from "./encoding";
 import { createDeliverTxResponseErrorMessage, isDeliverTxFailure, parseRawLog } from "./stargate";
+import get from "lodash/get";
 
 export class Cosmos{
   chainInfo: CosmosChainInfo
@@ -26,7 +27,7 @@ export class Cosmos{
 
     try {
         if(isPrivateKey){
-          privKey = Buffer.from(privateKey, 'hex')
+          privKey = privateKey
         }else{
           const seed = await mnemonicToSeed(mnemonic)
           const { privkey: privateKey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, stringToPath(`m/44'/${path}'/0'/0/0`));
@@ -34,13 +35,12 @@ export class Cosmos{
         }
 
         const uncompressed =  (await makeKeypair(privKey)).pubkey
-        console.log("🚀 ~ huhu ~ uncompressed:", uncompressed)
     
         const publickey = compressPubkey(uncompressed)
 
 
         const words = bech32.toWords(rawSecp256k1PubkeyToRawAddress(publickey))
-        const address = bech32.encode('cosmos', words)
+        const address = bech32.encode( get(this.chainInfo, 'bech32Config.bech32PrefixAccAddr'), words)
 
         return {
             address,

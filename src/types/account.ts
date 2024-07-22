@@ -1,7 +1,7 @@
 export interface ICreateAccountParams{
-    isPrivateKey: string,
+    isPrivateKey: boolean,
     mnemonic: string,
-    privateKey: string,
+    privateKey: Buffer,
     path?: string
 }
 
