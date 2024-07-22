@@ -1,6 +1,6 @@
 import { bech32 } from "bech32";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc, TokenCW20Params, TokenCW20Response } from "./types";
+import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc, TokenCW20Params } from "./types";
 import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
 import { compressPubkey, createSignature, makeKeypair, Sha256, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
@@ -145,7 +145,7 @@ export class Cosmos{
     const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
     const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
-    
+
     return {
       signed: signDoc,
       signature: stdSignature,
