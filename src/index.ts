@@ -99,17 +99,21 @@ export class Cosmos{
 
   async sendTokens(params: ITransactionParams){
     const { senderAddress, receiptAddress, amount, privateKey, fee, memo } = params
-    const sendMsg = {
-        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-        value: {
-          fromAddress: senderAddress,
-          toAddress: receiptAddress,
-          amount: [...amount],
-        },
+    try {
+      const sendMsg = {
+          typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+          value: {
+            fromAddress: senderAddress,
+            toAddress: receiptAddress,
+            amount: [...amount],
+          },
+      }
+      console.log("🚀 ~ sendMsg:", sendMsg)
+  
+      return this.signAndBroadcast({senderAddress, privateKey, msgs: sendMsg, fee, memo })
+    } catch (error) {
+      console.log("🚀 ~ Cosmos ~ sendTokens ~ error:", error)
     }
-    console.log("🚀 ~ sendMsg:", sendMsg)
-
-    return this.signAndBroadcast({senderAddress, privateKey, msgs: sendMsg, fee, memo })
   }
 
   async signAndBroadcast(params: ISignParams){
@@ -153,12 +157,16 @@ export class Cosmos{
   }
 
   async signDirect(params: ISignDirectParams){
+    console.log("🚀 ~ Cosmos ~ signDirect ~ params:", params)
     const { signData, privateKey, msgs, memo, fee } = params
     const { account_number, sequence, chainId } = signData
 
     const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
+    console.log("🚀 ~ Cosmos ~ signDirect ~ uncompressed:", uncompressed)
     const publickey = compressPubkey(uncompressed)
+    console.log("🚀 ~ Cosmos ~ signDirect ~ publickey:", publickey)
     const pubkey = encodePubkey(encodeSecp256k1Pubkey(publickey));
+    console.log("🚀 ~ Cosmos ~ signDirect ~ pubkey:", pubkey)
 
     const txBodyEncodeObject = {
       typeUrl: "/cosmos.tx.v1beta1.TxBody",
@@ -167,9 +175,12 @@ export class Cosmos{
         memo: memo,
       },
     };
+    console.log("🚀 ~ Cosmos ~ signDirect ~ txBodyEncodeObject:", txBodyEncodeObject)
 
     const txBodyBytes = encode(txBodyEncodeObject);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ txBodyBytes:", txBodyBytes)
     const gasLimit = Int53.fromString(fee.gas).toNumber();
+    console.log("🚀 ~ Cosmos ~ signDirect ~ gasLimit:", gasLimit)
 
     const authInfoBytes = makeAuthInfoBytes(
       [{ pubkey, sequence }],
@@ -178,20 +189,28 @@ export class Cosmos{
       fee.granter,
       fee.payer,
     );
+    console.log("🚀 ~ Cosmos ~ signDirect ~ authInfoBytes:", authInfoBytes)
 
     const signDoc = makeSignDoc(txBodyBytes, authInfoBytes, chainId, account_number);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ signDoc:", signDoc)
 
     const signBytes = makeSignBytes(signDoc);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ signBytes:", signBytes)
     const hashedMessage = sha256(signBytes);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ hashedMessage:", hashedMessage)
     const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
+    console.log("🚀 ~ Cosmos ~ signDirect ~ signature:", signature)
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ signatureBytes:", signatureBytes)
     const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
+    console.log("🚀 ~ Cosmos ~ signDirect ~ stdSignature:", stdSignature)
 
     const txRaw = TxRaw.fromPartial({
       bodyBytes: signDoc.bodyBytes,
       authInfoBytes: signDoc.authInfoBytes,
       signatures: [fromBase64(stdSignature.signature)],
     });
+    console.log("🚀 ~ Cosmos ~ signDirect ~ txRaw:", txRaw)
 
     return txRaw
   }

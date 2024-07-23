@@ -102,6 +102,7 @@ const lookupTypeWithError = (typeUrl: string): GeneratedType => {
     return type;
   }
 const encodeTxBody = (txBodyFields: TxBodyValue): Uint8Array  =>{
+    console.log("🚀 ~ encodeTxBody ~ txBodyFields:", txBodyFields)
     const wrappedMessages = txBodyFields.messages.map((message) => encodeAsAny(message));
     const txBody = TxBody.fromPartial({
       ...txBodyFields,
