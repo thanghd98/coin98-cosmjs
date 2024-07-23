@@ -207,6 +207,7 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
    * Decode extended signature from the simple fixed length encoding
    * described in toFixedLength().
    */
+  //@
   public static override fromFixedLength(data: Uint8Array): ExtendedSecp256k1Signature {
     if (data.length !== 65) {
       throw new Error(`Got invalid data length ${data.length}. Expected 32 + 32 + 1`);
