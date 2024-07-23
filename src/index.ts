@@ -110,7 +110,7 @@ export class Cosmos{
       }
       console.log("🚀 ~ sendMsg:", sendMsg)
   
-      return this.signAndBroadcast({senderAddress, privateKey, msgs: sendMsg, fee, memo })
+      return this.signAndBroadcast({senderAddress, privateKey, msgs: [sendMsg], fee, memo })
     } catch (error) {
       console.log("🚀 ~ Cosmos ~ sendTokens ~ error:", error)
     }
