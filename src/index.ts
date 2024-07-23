@@ -197,8 +197,9 @@ export class Cosmos{
     const signBytes = makeSignBytes(signDoc);
     console.log("🚀 ~ Cosmos ~ signDirect ~ signBytes:", signBytes)
     const hashedMessage = sha256(signBytes);
-    console.log("🚀 ~ Cosmos ~ signDirect ~ hashedMessage:", hashedMessage)
-    const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
+    console.log("🚀 ~ Cosmos ~ signDirect ~ hashedMessage buffer:", Buffer.from(hashedMessage))
+    console.log("🚀 ~ Cosmos ~ signDirect ~ hashedMessage:", hashedMessage.buffer)
+    const signature = await createSignature(Buffer.from(hashedMessage), Buffer.from(privateKey, 'hex'));
     console.log("🚀 ~ Cosmos ~ signDirect ~ signature.r(32):", signature.r(32))
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
     console.log("🚀 ~ Cosmos ~ signDirect ~ signatureBytes:", signatureBytes)
