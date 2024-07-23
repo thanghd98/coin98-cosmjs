@@ -61,8 +61,6 @@ export const compressPubkey = (pubkey: Uint8Array): Uint8Array => {
     }
 }
 
-const derTagInteger = 0x02;
-
 export class Secp256k1Signature {
   /**
    * Takes the pair of integers (r, s) as 2x32 byte of binary data.
@@ -95,7 +93,6 @@ export class Secp256k1Signature {
 
     // r
     const rTag = data[pos++];
-     
     if (rTag !== derTagInteger) {
       throw new Error("INTEGER tag expected");
     }
@@ -108,7 +105,6 @@ export class Secp256k1Signature {
 
     // s
     const sTag = data[pos++];
-     
     if (sTag !== derTagInteger) {
       throw new Error("INTEGER tag expected");
     }
@@ -151,11 +147,12 @@ export class Secp256k1Signature {
       return this.data.r;
     } else {
       const paddingLength = length - this.data.r.length;
+      console.log("🚀 ~ Secp256k1Signature ~ r ~ paddingLength:", paddingLength)
       if (paddingLength < 0) {
         throw new Error("Length too small to hold parameter r");
       }
       const padding = new Uint8Array(paddingLength);
-         
+      console.log("🚀 ~ Secp256k1Signature ~ r ~ padding:", padding)
       return new Uint8Array([...padding, ...this.data.r]);
     }
   }
@@ -169,37 +166,30 @@ export class Secp256k1Signature {
         throw new Error("Length too small to hold parameter s");
       }
       const padding = new Uint8Array(paddingLength);
-         
       return new Uint8Array([...padding, ...this.data.s]);
     }
   }
 
   public toFixedLength(): Uint8Array {
-     
     return new Uint8Array([...this.r(32), ...this.s(32)]);
   }
 
   public toDer(): Uint8Array {
     // DER supports negative integers but our data is unsigned. Thus we need to prepend
     // a leading 0 byte when the higest bit is set to differentiate nagative values
-     
     const rEncoded = this.data.r[0] >= 0x80 ? new Uint8Array([0, ...this.data.r]) : this.data.r;
-     
     const sEncoded = this.data.s[0] >= 0x80 ? new Uint8Array([0, ...this.data.s]) : this.data.s;
 
     const rLength = rEncoded.length;
     const sLength = sEncoded.length;
-     
     const data = new Uint8Array([derTagInteger, rLength, ...rEncoded, derTagInteger, sLength, ...sEncoded]);
 
-     
     return new Uint8Array([0x30, data.length, ...data]);
   }
 }
 
 function trimLeadingNullBytes(inData: Uint8Array): Uint8Array {
   let numberOfLeadingNullBytes = 0;
-     
   for (const byte of inData) {
     if (byte === 0x00) {
       numberOfLeadingNullBytes++;
@@ -217,9 +207,9 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
    * Decode extended signature from the simple fixed length encoding
    * described in toFixedLength().
    */
-  public static  fromFixedLength(data: Uint8Array): ExtendedSecp256k1Signature {
+  public static override fromFixedLength(data: Uint8Array): ExtendedSecp256k1Signature {
     if (data.length !== 65) {
-      throw new Error(`Got invalid data length ${data.length}. Expected 32 + 32 + 1`)
+      throw new Error(`Got invalid data length ${data.length}. Expected 32 + 32 + 1`);
     }
     return new ExtendedSecp256k1Signature(
       trimLeadingNullBytes(data.slice(0, 32)),
@@ -249,8 +239,7 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
    * r (32 bytes) | s (32 bytes) | recovery param (1 byte)
    * where | denotes concatenation of bonary data.
    */
-  public  toFixedLength(): Uint8Array {
-     
+  public override toFixedLength(): Uint8Array {
     return new Uint8Array([...this.r(32), ...this.s(32), this.recovery]);
   }
 }
