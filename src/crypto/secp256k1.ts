@@ -1,9 +1,13 @@
+//@ts-nocheck
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 import elliptic from "elliptic";
 import BN from "bn.js";
 import { fromHex } from "../encoding";
 
 const secp256k1 = new elliptic.ec("secp256k1");
 const secp256k1N = new BN("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", "hex");
+
+const derTagInteger = 0x02;
 
 export interface Secp256k1Keypair {
     /** A 32 byte private key */
@@ -77,7 +81,7 @@ export class Secp256k1Signature {
       trimLeadingNullBytes(data.slice(0, 32)),
       trimLeadingNullBytes(data.slice(32, 64)),
     );
-  }
+  };
 
   public static fromDer(data: Uint8Array): Secp256k1Signature {
     let pos = 0;
@@ -143,6 +147,7 @@ export class Secp256k1Signature {
   }
 
   public r(length?: number): Uint8Array {
+    console.log("🚀 ~ Secp256k1Signature ~ r ~ length:", length)
     if (length === undefined) {
       return this.data.r;
     } else {
@@ -153,6 +158,8 @@ export class Secp256k1Signature {
       }
       const padding = new Uint8Array(paddingLength);
       console.log("🚀 ~ Secp256k1Signature ~ r ~ padding:", padding)
+      console.log("🚀 ~ Secp256k1Signature ~ r ~ this.data.r:", this.data.r)
+      console.log("🚀 ~ Secp256k1Signature ~ r ~ new Uint8Array([...padding, ...this.data.r]):", new Uint8Array([...padding, ...this.data.r]))
       return new Uint8Array([...padding, ...this.data.r]);
     }
   }
@@ -198,7 +205,7 @@ function trimLeadingNullBytes(inData: Uint8Array): Uint8Array {
     }
   }
   return inData.slice(numberOfLeadingNullBytes);
-}
+};
 /**
  * A Secp256k1Signature plus the recovery parameter
  */
@@ -207,8 +214,8 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
    * Decode extended signature from the simple fixed length encoding
    * described in toFixedLength().
    */
-  //@
-  public static override fromFixedLength(data: Uint8Array): ExtendedSecp256k1Signature {
+  
+  public static fromFixedLength(data: Uint8Array): ExtendedSecp256k1Signature {
     if (data.length !== 65) {
       throw new Error(`Got invalid data length ${data.length}. Expected 32 + 32 + 1`);
     }
@@ -217,7 +224,7 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
       trimLeadingNullBytes(data.slice(32, 64)),
       data[64],
     );
-  }
+  };
 
   public readonly recovery: number;
 
@@ -240,7 +247,7 @@ export class ExtendedSecp256k1Signature extends Secp256k1Signature {
    * r (32 bytes) | s (32 bytes) | recovery param (1 byte)
    * where | denotes concatenation of bonary data.
    */
-  public override toFixedLength(): Uint8Array {
+  public toFixedLength(): Uint8Array {
     return new Uint8Array([...this.r(32), ...this.s(32), this.recovery]);
   }
 }
