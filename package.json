@@ -1,8 +1,8 @@
 {
   "version": "0.18.0",
   "license": "MIT",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "src/index.ts",
+  "typings": "src/index.ts",
   "files": [
     "dist",
     "src"
@@ -32,18 +32,18 @@
   },
   "name": "@thanghd/cosmjs",
   "author": "thanghoduc",
-  "module": "dist/cosmjs.esm.js",
   "size-limit": [
     {
-      "path": "dist/cosmjs.cjs.production.min.js",
+      "path": "dist/utils.cjs.production.min.js",
       "limit": "10 KB"
     },
     {
-      "path": "dist/cosmjs.esm.js",
+      "path": "dist/utils.esm.js",
       "limit": "10 KB"
     }
   ],
   "devDependencies": {
+    "@types/bn.js": "^5.1.5",
     "@size-limit/preset-small-lib": "^11.1.4",
     "@types/elliptic": "^6.4.18",
     "@types/lodash": "^4.17.7",
