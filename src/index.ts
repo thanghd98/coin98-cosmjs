@@ -200,9 +200,14 @@ export class Cosmos{
     console.log("🚀 ~ Cosmos ~ signDirect ~ hashedMessage:", hashedMessage)
     const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
     console.log("🚀 ~ Cosmos ~ signDirect ~ signature:", signature)
+    //@ts-expect-error
+    console.log("🚀 ~ Cosmos ~ signDirect ~ signature.data:", signature.data)
+    //@ts-expect-error
     console.log("🚀 ~ Cosmos ~ signDirect ~ signature.r(32):", signature.data.r(32))
+    //@ts-expect-error
     console.log("🚀 ~ Cosmos ~ signDirect ~ signature.s(32):", signature.data.s(32))
-    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
+    //@ts-expect-error
+    const signatureBytes = new Uint8Array([...signature.data.r(32), ...signature.data.s(32)]);
     console.log("🚀 ~ Cosmos ~ signDirect ~ signatureBytes:", signatureBytes)
     const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
     console.log("🚀 ~ Cosmos ~ signDirect ~ stdSignature:", stdSignature)
