@@ -43,14 +43,14 @@ export interface IExecuteTransactiom{
 
 export interface ExecuteResult {
     /** @deprecated Not filled in Cosmos SDK >= 0.50. Use events instead. */
-    readonly logs: any;
-    /** Block height in which the transaction is included */
-    readonly height: number;
+    // readonly logs: any;
+    // /** Block height in which the transaction is included */
+    // readonly height: number;
     /** Transaction hash (might be used as transaction ID). Guaranteed to be non-empty upper-case hex */
     readonly transactionHash: string;
-    readonly events: readonly Event[];
-    readonly gasWanted: bigint;
-    readonly gasUsed: bigint;
+//     readonly events: readonly Event[];
+//     readonly gasWanted: bigint;
+//     readonly gasUsed: bigint;
 }
   
 export interface ExecuteInstruction {

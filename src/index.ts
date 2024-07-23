@@ -264,12 +264,12 @@ export class Cosmos{
     }
 
     return {
-      logs: parseRawLog(result.rawLog),
-      height: result.height,
-      transactionHash: result.transactionHash,
-      events: result.events,
-      gasWanted: result.gasWanted,
-      gasUsed: result.gasUsed,
+      // logs: parseRawLog(result.rawLog),
+      // height: result.height,
+      transactionHash: result.hash,
+      // events: result.events,
+      // gasWanted: result.gasWanted,
+      // gasUsed: result.gasUsed,
     };
   }
 
