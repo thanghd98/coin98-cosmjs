@@ -1,3 +1,5 @@
+import { Wallet } from '@wallet/core'
+import { SignDoc } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 interface Coin{
     amount: string,
     denom: string
@@ -11,7 +13,7 @@ interface Fee {
 }
 
 export interface ITransactionParams{
-    privateKey: string,
+    wallet: Wallet,
     senderAddress: string,
     receiptAddress: string,
     amount: Coin[],
@@ -23,16 +25,13 @@ export interface ISignParams extends Omit<ITransactionParams, 'amount' | 'receip
     msgs: any
 }
 
-export interface ISignDirectParams extends Omit<ISignParams, 'amount' | 'receiptAddress' > {
-    signData: {
-        account_number: number,
-        sequence: number,
-        chainId: string
-    }
+export interface ISignDirectParams{
+    wallet: Wallet,
+    signDoc: SignDoc
 }
 
 export interface IExecuteTransactiom{
-    privateKey: string,
+    wallet: Wallet,
     senderAddress: string,
     contractAddress: string,
     msg: any,
@@ -42,15 +41,7 @@ export interface IExecuteTransactiom{
 }
 
 export interface ExecuteResult {
-    /** @deprecated Not filled in Cosmos SDK >= 0.50. Use events instead. */
-    // readonly logs: any;
-    // /** Block height in which the transaction is included */
-    // readonly height: number;
-    /** Transaction hash (might be used as transaction ID). Guaranteed to be non-empty upper-case hex */
     readonly transactionHash: string;
-//     readonly events: readonly Event[];
-//     readonly gasWanted: bigint;
-//     readonly gasUsed: bigint;
 }
   
 export interface ExecuteInstruction {
@@ -61,7 +52,7 @@ export interface ExecuteInstruction {
 
 
 export interface IExecuteMultipleTransaction{
-    privateKey: string,
+    wallet: Wallet,
     senderAddress: string,
     instructions: readonly ExecuteInstruction[]
     fee: any | "auto" | number,
@@ -81,6 +72,12 @@ export interface StdSignDoc {
     readonly msgs: readonly AminoMsg[];
     readonly memo: string;
 }
+
+export interface ISignAminoParams{
+    wallet: Wallet,
+    signDoc: StdSignDoc
+}
+
 
 export interface TokenCW20Params{
     address: string,

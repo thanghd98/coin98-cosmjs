@@ -147,19 +147,14 @@ export class Secp256k1Signature {
   }
 
   public r(length?: number): Uint8Array {
-    console.log("🚀 ~ Secp256k1Signature ~ r ~ length:", length)
     if (length === undefined) {
       return this.data.r;
     } else {
       const paddingLength = length - this.data.r.length;
-      console.log("🚀 ~ Secp256k1Signature ~ r ~ paddingLength:", paddingLength)
       if (paddingLength < 0) {
         throw new Error("Length too small to hold parameter r");
       }
       const padding = new Uint8Array(paddingLength);
-      console.log("🚀 ~ Secp256k1Signature ~ r ~ padding:", padding)
-      console.log("🚀 ~ Secp256k1Signature ~ r ~ this.data.r:", this.data.r)
-      console.log("🚀 ~ Secp256k1Signature ~ r ~ new Uint8Array([...padding, ...this.data.r]):", new Uint8Array([...padding, ...this.data.r]))
       return new Uint8Array([...padding, ...this.data.r]);
     }
   }

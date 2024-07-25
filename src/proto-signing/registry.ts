@@ -89,8 +89,6 @@ export function isTxBodyEncodeObject(encodeObject: EncodeObject): encodeObject i
 }
 
 const lookupType = (typeUrl: string): GeneratedType | undefined => {
-    console.log("🚀 ~ lookupType ~ typeUrl:", typeUrl)
-    console.log("🚀 ~ lookupType ~ types.get(typeUrl):", types.get(typeUrl))
     return types.get(typeUrl);
   }
 
@@ -102,7 +100,6 @@ const lookupTypeWithError = (typeUrl: string): GeneratedType => {
     return type;
   }
 const encodeTxBody = (txBodyFields: TxBodyValue): Uint8Array  =>{
-    console.log("🚀 ~ encodeTxBody ~ txBodyFields:", txBodyFields)
     const wrappedMessages = txBodyFields.messages.map((message) => encodeAsAny(message));
     const txBody = TxBody.fromPartial({
       ...txBodyFields,

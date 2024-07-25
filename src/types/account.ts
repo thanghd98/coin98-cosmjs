@@ -13,7 +13,8 @@ export interface ICreateAccountResponse{
 
 export interface IAccountParams {
     address: string, 
-    rest: string
+    rest: string,
+    chain?: string
 }
 
 export interface IAccountResponse {

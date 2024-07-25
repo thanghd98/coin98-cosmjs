@@ -1,7 +1,8 @@
 import get from 'lodash/get'
+import { CHAIN_TYPE } from '@wallet/constants'
 import { IAccountParams, IAccountResponse } from '../types';
 
-export const getAccount = async ({address, rest}: IAccountParams): Promise<IAccountResponse> => {
+export const getAccount = async ({address, rest, chain}: IAccountParams): Promise<IAccountResponse> => {
     const accountRequest = await fetch(`${rest}/cosmos/auth/v1beta1/accounts/${address}`)
 
     const { account } = await accountRequest.json()
@@ -9,6 +10,14 @@ export const getAccount = async ({address, rest}: IAccountParams): Promise<IAcco
         throw new Error(
             `Account '${address}' does not exist on chain. Send some tokens there before.`,
           );
+    }
+
+    if(chain === CHAIN_TYPE.injective){
+        return {
+            sequence: Number(get(account, 'base_account.sequence')),
+            account_number: Number(get(account, 'base_account.account_number')),
+            pub_key: get(account, 'base_account.pub_key.key')
+        }
     }
 
     return {

@@ -1,61 +1,21 @@
-import { bech32 } from "bech32";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, StdSignDoc, TokenCW20Params } from "./types";
+import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { CosmosChainInfo, ICreateAccountResponse, ISignDirectParams, ISignParams, ITransactionParams, IExecuteTransactiom, ExecuteResult, ExecuteInstruction, IExecuteMultipleTransaction, TokenCW20Params, ISignAminoParams } from "./types";
 import { ICreateAccountParams } from "./types";
 import { mnemonicToSeed } from "bip39"
 import { compressPubkey, createSignature, makeKeypair, Sha256, sha256, Slip10, Slip10Curve, stringToPath } from "./crypto";
 import { encodeSecp256k1Pubkey, rawSecp256k1PubkeyToRawAddress, serializeSignDoc } from "./amino";
-import { SignDoc, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { BinaryReader, BinaryWriter, getAccount } from "./utils";
-import { encode, encodePubkey, makeAuthInfoBytes, makeSignBytes, makeSignDoc } from "./proto-signing";
+import { BinaryReader, getAccount, QuerySmartContractStateRequest, QuerySmartContractStateResponse } from "./utils";
+import { encode, encodeInjectivePubkey, encodePubkey, makeAuthInfoBytes, makeSignBytes, makeSignDoc } from "./proto-signing";
 import { Int53 } from "./math";
 import { encodeSecp256k1Signature } from "./crypto/signature";
-import { fromBase64, fromUtf8, toAscii, toBase64, toUtf8 } from "./encoding";
-import { createDeliverTxResponseErrorMessage, isDeliverTxFailure, parseRawLog } from "./stargate";
+import { fromBase64, fromUtf8, toAscii, toBase64, toBech32, toUtf8 } from "./encoding";
+import { createDeliverTxResponseErrorMessage, isDeliverTxFailure } from "./stargate";
+import keccak256 from 'keccak256'
 import get from "lodash/get";
 
-export const QuerySmartContractStateRequest = {
-  encode(
-    message: any,
-    writer: BinaryWriter = BinaryWriter.create(),
-  ): BinaryWriter {
-    if (message.address !== "") {
-      writer.uint32(10).string(message.address);
-    }
-    if (message.queryData.length !== 0) {
-      writer.uint32(18).bytes(message.queryData);
-    }
-    return writer;
-  },
-}
 
-export const QuerySmartContractStateResponse = {
-  decode(input: BinaryReader | Uint8Array, length?: number) {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQuerySmartContractStateResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.data = reader.bytes();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-}
-
-function createBaseQuerySmartContractStateResponse() {
-  return {
-    data: new Uint8Array(),
-  };
-}
-
-export class Cosmos{
+export class Coin98Cosmos{
   chainInfo: CosmosChainInfo
 
   constructor( chainInfo: CosmosChainInfo ){
@@ -63,11 +23,10 @@ export class Cosmos{
   }
 
   static withChainInfo(chainInfo: CosmosChainInfo){
-    return new Cosmos(chainInfo)
+    return new Coin98Cosmos(chainInfo)
   }
 
   async createAcccount(params: ICreateAccountParams): Promise<ICreateAccountResponse>{
-    console.log("🚀 ~ Cosmos ~ createAcccount ~ params:", params)
     const {isPrivateKey, mnemonic, privateKey, path} = params
     let privKey: Buffer
 
@@ -83,9 +42,7 @@ export class Cosmos{
         const uncompressed =  (await makeKeypair(privKey)).pubkey
     
         const publickey = compressPubkey(uncompressed)
-
-        const words = bech32.toWords(rawSecp256k1PubkeyToRawAddress(publickey))
-        const address = bech32.encode( get(this.chainInfo, 'bech32Config.bech32PrefixAccAddr'), words)
+        const address = toBech32(get(this.chainInfo, 'bech32Config.bech32PrefixAccAddr'), rawSecp256k1PubkeyToRawAddress(publickey))
 
         return {
             address,
@@ -98,7 +55,7 @@ export class Cosmos{
   }
 
   async sendTokens(params: ITransactionParams){
-    const { senderAddress, receiptAddress, amount, privateKey, fee, memo } = params
+    const { senderAddress, receiptAddress, amount, wallet, fee, memo } = params
     try {
       const sendMsg = {
           typeUrl: "/cosmos.bank.v1beta1.MsgSend",
@@ -108,64 +65,39 @@ export class Cosmos{
             amount: [...amount],
           },
       }
-      console.log("🚀 ~ sendMsg:", sendMsg)
   
-      return this.signAndBroadcast({senderAddress, privateKey, msgs: [sendMsg], fee, memo })
+      return this.signAndBroadcast({senderAddress, wallet, msgs: [sendMsg], fee, memo })
     } catch (error) {
       console.log("🚀 ~ Cosmos ~ sendTokens ~ error:", error)
+      throw new Error(error.message)
     }
   }
 
   async signAndBroadcast(params: ISignParams){
-    const { senderAddress, privateKey, memo, fee, msgs } = params
+    const { senderAddress, wallet, memo, fee, msgs } = params
 
-    const txRaw = await this.sign({privateKey, senderAddress, msgs, fee, memo}) as TxRaw;
+    const txRaw = await this.sign({wallet, senderAddress, msgs, fee, memo}) as TxRaw;
     const txBytes = TxRaw.encode(txRaw).finish();
   
     return this.broadcastTransaction(toBase64(txBytes)) 
   }
 
   async sign(params: ISignParams){
-    const { senderAddress } = params
+    const { senderAddress, wallet, msgs, memo, fee,  } = params
 
     const rest = this.chainInfo.rest
-    const { account_number, sequence } = await getAccount({rest, address: senderAddress})
+    const { account_number, sequence } = await getAccount({rest, address: senderAddress, chain: wallet?.meta?.chain})
 
-    const  signerData = {
-      account_number: account_number,
-      sequence: sequence,
-      chainId: this.chainInfo.chainId,
-    };
-
-    return this.signDirect({...params, signData: signerData})
-  }
-
-  async signDirectDapp(privateKey: string, signDoc: SignDoc){
-    const signBytes = makeSignBytes(signDoc);
-
-    const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
+    const uncompressed =  (await makeKeypair(Buffer.from(wallet?.privateKey as string, 'hex'))).pubkey
     const publickey = compressPubkey(uncompressed)
-  
-    const hashedMessage = sha256(signBytes);
-    const signature = await createSignature(hashedMessage, Buffer.from(privateKey, 'hex'));
-    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
-    const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
+    let pubkey = encodePubkey(encodeSecp256k1Pubkey(publickey));
 
-    return {
-      signed: signDoc,
-      signature: stdSignature,
-    };
-  }
-
-  async signDirect(params: ISignDirectParams){
-    console.log("🚀 ~ Cosmos ~ signDirect ~ params:", params)
-    const { signData, privateKey, msgs, memo, fee } = params
-    const { account_number, sequence, chainId } = signData
-
-    const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
-    const publickey = compressPubkey(uncompressed)
-    const pubkey = encodePubkey(encodeSecp256k1Pubkey(publickey));
-
+    if(this.chainInfo.chainId.startsWith('injective') && !wallet?.meta?.isOldStandard){
+      pubkey = encodeInjectivePubkey(encodeSecp256k1Pubkey(publickey));
+    }else{
+      pubkey = encodePubkey(encodeSecp256k1Pubkey(publickey));
+    }
+    
     const txBodyEncodeObject = {
       typeUrl: "/cosmos.tx.v1beta1.TxBody",
       value: {
@@ -185,29 +117,54 @@ export class Cosmos{
       fee.payer,
     );
 
+    const chainId =  this.chainInfo.chainId
+
     const signDoc = makeSignDoc(txBodyBytes, authInfoBytes, chainId, account_number);
 
-    const signBytes = makeSignBytes(signDoc);
-    const hashedMessage = sha256(signBytes);
-    const signature = await createSignature(Buffer.from(hashedMessage), Buffer.from(privateKey, 'hex'));
-    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
-    const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
+    const { signature } = await this.signDirect({wallet, signDoc})
 
     const txRaw = TxRaw.fromPartial({
       bodyBytes: signDoc.bodyBytes,
       authInfoBytes: signDoc.authInfoBytes,
-      signatures: [fromBase64(stdSignature.signature)],
+      signatures: [fromBase64(signature.signature)],
     });
 
     return txRaw
   }
 
-  async signAmino(privateKey: string, signDoc: StdSignDoc){
-    const uncompressed =  (await makeKeypair(Buffer.from(privateKey, 'hex'))).pubkey
+
+  async signDirect(params: ISignDirectParams){
+    const { wallet, signDoc } = params
+
+    const uncompressed =  (await makeKeypair(Buffer.from(wallet?.privateKey as string, 'hex'))).pubkey
+    const publickey = compressPubkey(uncompressed)
+
+    const signBytes = makeSignBytes(signDoc);
+    let hashedMessage = sha256(signBytes);
+
+    if(this.chainInfo.chainId?.startsWith('injective') && !wallet?.meta?.isOldStandard){
+      hashedMessage = keccak256(Buffer.from(signBytes))
+    }else{
+      hashedMessage = sha256(signBytes);
+    }
+
+    const signature = await createSignature(Buffer.from(hashedMessage), Buffer.from(wallet?.privateKey as string, 'hex'));
+    const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
+    const stdSignature = encodeSecp256k1Signature(publickey, signatureBytes);
+
+    return {
+      signed: signDoc,
+      signature: stdSignature,
+    };
+  }
+
+  async signAmino(params: ISignAminoParams){
+    const { wallet, signDoc } = params
+    const uncompressed =  (await makeKeypair(Buffer.from(wallet.privateKey as string, 'hex'))).pubkey
     const publickey = compressPubkey(uncompressed)
 
     const message = new Sha256(serializeSignDoc(signDoc)).digest();
-    const signature = await createSignature(message, Buffer.from(privateKey, 'hex'));
+    const signature = await createSignature(message, Buffer.from(wallet?.privateKey as string, 'hex'));
     const signatureBytes = new Uint8Array([...signature.r(32), ...signature.s(32)]);
 
     return {
@@ -231,21 +188,25 @@ export class Cosmos{
 
     const { result } = await broadcastTx.json()
 
+    if(get(result, 'log') !== '[]' && get(result, 'log') !== ''){
+      throw new Error(get(result, 'log'))
+    }
+
     return result
   }
 
   async execute (params: IExecuteTransactiom ): Promise<ExecuteResult>{
-    const { contractAddress, msg, funds, privateKey, senderAddress, fee, memo } = params
+    const { contractAddress, msg, funds, wallet, senderAddress, fee, memo } = params
     const instruction: ExecuteInstruction = {
       contractAddress: contractAddress,
       msg: msg,
       funds: funds,
     };
-    return this.executeMultiple( {privateKey, senderAddress, instructions: [instruction], fee, memo});
+    return this.executeMultiple( {wallet, senderAddress, instructions: [instruction], fee, memo});
   }
 
   async executeMultiple ( params: IExecuteMultipleTransaction): Promise<ExecuteResult>{
-    const { instructions, senderAddress , privateKey, fee, memo } = params
+    const { instructions, senderAddress , wallet, fee, memo } = params
 
     const msgs: any[] = instructions.map((i) => ({
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -257,7 +218,7 @@ export class Cosmos{
       }), 
     }));
 
-    const result = await this.signAndBroadcast({privateKey, senderAddress, msgs, fee, memo});
+    const result = await this.signAndBroadcast({wallet, senderAddress, msgs, fee, memo});
 
     if (isDeliverTxFailure(result)) {
       throw new Error(createDeliverTxResponseErrorMessage(result));
@@ -315,7 +276,6 @@ export class Cosmos{
       }
       
     } catch (error) {
-      console.log("🚀 ~ Cosmos ~ getTokenInfoCw20 ~ error:", error)
       throw new Error('Contract not found')
     }
 
@@ -323,3 +283,8 @@ export class Cosmos{
   }
 }
 
+
+
+export * from './encoding'
+export * from './crypto'
+export * from './amino'

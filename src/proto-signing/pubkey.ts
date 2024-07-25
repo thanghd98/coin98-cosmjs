@@ -57,6 +57,16 @@ export function isMultisigThresholdPubkey(pubkey: Pubkey): pubkey is MultisigThr
     return (pubkey as MultisigThresholdPubkey).type === "tendermint/PubKeyMultisigThreshold";
 }
 
+export function encodeInjectivePubkey(pubkey: Pubkey){
+  const pubkeyProto = CosmosCryptoSecp256k1Pubkey.fromPartial({
+    key: fromBase64(pubkey.value),
+  });
+  return Any.fromPartial({
+    typeUrl: "/injective.crypto.v1beta1.ethsecp256k1.PubKey",
+    value: Uint8Array.from(CosmosCryptoSecp256k1Pubkey.encode(pubkeyProto).finish()),
+  });
+}
+
 export function encodePubkey(pubkey: Pubkey): Any {
     if (isSecp256k1Pubkey(pubkey)) {
       const pubkeyProto = CosmosCryptoSecp256k1Pubkey.fromPartial({

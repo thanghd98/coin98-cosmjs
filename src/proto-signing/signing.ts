@@ -11,8 +11,6 @@ export function makeAuthInfoBytes(
     feePayer: string | undefined,
     signMode = SignMode.SIGN_MODE_DIRECT,
 ): Uint8Array {
-  console.log("🚀 ~   signerInfos: makeSignerInfos(signers, signMode:",   makeSignerInfos(signers, signMode))
-
     const authInfo = AuthInfo.fromPartial({
       signerInfos: makeSignerInfos(signers, signMode),
       fee: {
@@ -22,7 +20,6 @@ export function makeAuthInfoBytes(
         payer: feePayer,
       },
     });
-    console.log("🚀 ~ authInfo:", authInfo)
     return AuthInfo.encode(authInfo).finish();
 }
 
@@ -31,8 +28,6 @@ function makeSignerInfos(
     signers: ReadonlyArray<{ readonly pubkey: Any; readonly sequence: number | bigint }>,
     signMode: SignMode,
   ): SignerInfo[] {
-    console.log("🚀 ~ signMode:", signMode)
-    console.log("🚀 ~ signers:", signers)
     return signers.map(
       ({ pubkey, sequence }): SignerInfo => ({
         publicKey: pubkey,
@@ -65,7 +60,6 @@ export function makeSignBytes({ accountNumber, authInfoBytes, bodyBytes, chainId
       bodyBytes: bodyBytes,
       chainId: chainId,
     });
-    console.log("🚀 ~ makeSignBytes ~ signDoc:", signDoc)
     return SignDoc.encode(signDoc).finish();
 }
   
